@@ -12,9 +12,8 @@
 #include <QAbstractTableModel>
 #include <QVBoxLayout>
 
-class QBulbModel : public QAbstractTableModel
+class bulb_model : public QAbstractTableModel
 {
-  //Q_OBJECT
 private:
   QList<::bulb> bulbs;
 
@@ -42,11 +41,11 @@ public:
     return bulbs[i];
   }
 
-  QBulbModel()
+  bulb_model()
   {
 
   }
-  // Inherited via QAbstractTableModel
+
   virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override
   {
     return bulbs.size();
@@ -71,13 +70,26 @@ public:
       }
     }
     case Qt::CheckStateRole: {
-      return QVariant();// Qt::Checked;
+      if (column == 0) {
+        return b.selected ? Qt::Checked : Qt::Unchecked;
+      } else {
+        return QVariant();
+      }
     }
     default: return QVariant();
     }
+  }
+
+  virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override
+  {
+    int row = index.row();
+    int column = index.column();
+    auto& b = bulbs[row];
     if (role == Qt::CheckStateRole) {
-      //
+      b.selected = value.toBool();
+      return true;
     }
+    return false;
   }
 
   virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override
@@ -97,13 +109,17 @@ public:
 
   virtual Qt::ItemFlags flags(const QModelIndex &index) const override
   {
-    return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+    int column = index.column();
+    Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+    if (column == 0) {
+      flags |= Qt::ItemIsUserCheckable;
+    }
+    return flags;
   }
-
 };
 
 static int message_id = 0;
-static QBulbModel* model;
+static bulb_model* model;
 
 static QString get_id()
 {
@@ -115,7 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
   , ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-  model = new QBulbModel();
+  model = new bulb_model();
   connect(ui->qpb_initialize_db, &QPushButton::clicked,
     this, &MainWindow::on_qpb_initialize_db_clicked);
 

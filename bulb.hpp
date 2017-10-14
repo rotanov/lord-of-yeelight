@@ -16,6 +16,7 @@ private:
   uint64_t id_;
 
 public:
+  bool selected = true;
   bulb(void);
   bulb(QString ip, QString id);
   QString get_ip_str() const;
