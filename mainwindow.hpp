@@ -31,7 +31,7 @@ private slots:
   void on_horizontalSlider_valueChanged(int value);
   void on_qpb_initialize_db_clicked();
   void on_qpb_color_dialog_clicked();
-  void on_qpb_qpb_wreak_havoc_clicked();
+  void on_qpb_wreak_havoc_clicked();
   void wreak_havoc();
   void on_ready_read_tcp_socket();
   void on_new_tcp_server_connection();

@@ -335,7 +335,7 @@ void MainWindow::on_qpb_color_dialog_clicked()
   }
 }
 
-void MainWindow::on_qpb_qpb_wreak_havoc_clicked()
+void MainWindow::on_qpb_wreak_havoc_clicked()
 {
   connect_to_all_bulbs();
   for (int i = 0; i < model->size(); i++) {
