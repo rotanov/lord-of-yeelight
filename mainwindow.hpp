@@ -3,11 +3,14 @@
 #include <QMainWindow>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork>
-#include <stdint.h>
+
+#include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 
 #include "bulb.hpp"
+#include "bulb_model.hpp"
 #include "storage.hpp"
 
 namespace Ui {
@@ -37,14 +40,16 @@ private slots:
   void on_new_tcp_server_connection();
 
 private:
+  int message_id = 0;
+  bulb_model* model;
   storage storage;
   Ui::MainWindow *ui;
   QUdpSocket* udp_receive_socket;
   QUdpSocket* udp_send_socket;
   uint16_t udp_port;
   QByteArray udp_datagram_recv;
-  QList<QTcpSocket*> tcp_sockets;
-  QList<QTcpSocket*> unlimited_tcp_sockets;
+  std::unordered_map<uint16_t, QTcpSocket*> tcp_sockets;
+  std::unordered_map<uint16_t, QTcpSocket*> unlimited_tcp_sockets;
   QList<::bulb>::iterator ib;
   QHostAddress mcast_addr;
   QTcpServer tcp_server;
@@ -54,4 +59,5 @@ private:
 
   void connect_to_all_bulbs();
   void discover();
+  QString get_id();
 };

@@ -9,122 +9,7 @@
 #include <QTableView>
 #include <QTableWidget>
 #include <QColorDialog>
-#include <QAbstractTableModel>
 #include <QVBoxLayout>
-
-class bulb_model : public QAbstractTableModel
-{
-private:
-  QList<::bulb> bulbs;
-
-public:
-  bool have_bulb(const ::bulb& bulb)
-  {
-    return std::find(bulbs.begin(), bulbs.end(), bulb) != bulbs.end();
-  }
-
-  void add_bulb(const ::bulb& bulb)
-  {
-    int n = bulbs.size();
-    beginInsertRows(QModelIndex(), n, n);
-    bulbs.push_back(bulb);
-    endInsertRows();
-  }
-
-  int size()
-  {
-    return bulbs.size();
-  }
-
-  ::bulb& operator [](int i)
-  {
-    return bulbs[i];
-  }
-
-  bulb_model()
-  {
-
-  }
-
-  virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override
-  {
-    return bulbs.size();
-  }
-
-  virtual int columnCount(const QModelIndex & parent = QModelIndex()) const override
-  {
-    return 3;
-  }
-
-  virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override
-  {
-    int row = index.row();
-    int column = index.column();
-    auto& b = bulbs[row];
-    switch (role) {
-    case Qt::DisplayRole: {
-      switch (column) {
-      case 0: return b.get_id_str();
-      case 1: return b.get_ip_str();
-      case 2: return b.get_port();
-      }
-    }
-    case Qt::CheckStateRole: {
-      if (column == 0) {
-        return b.selected ? Qt::Checked : Qt::Unchecked;
-      } else {
-        return QVariant();
-      }
-    }
-    default: return QVariant();
-    }
-  }
-
-  virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override
-  {
-    int row = index.row();
-    int column = index.column();
-    auto& b = bulbs[row];
-    if (role == Qt::CheckStateRole) {
-      b.selected = value.toBool();
-      return true;
-    }
-    return false;
-  }
-
-  virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override
-  {
-    if (role != Qt::DisplayRole) {
-      return QVariant();
-    }
-    if (orientation != Qt::Horizontal) {
-      return QVariant();
-    }
-    switch (section) {
-    case 0: return "id";
-    case 1: return "ip";
-    case 2: return "port";
-    }
-  }
-
-  virtual Qt::ItemFlags flags(const QModelIndex &index) const override
-  {
-    int column = index.column();
-    Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-    if (column == 0) {
-      flags |= Qt::ItemIsUserCheckable;
-    }
-    return flags;
-  }
-};
-
-static int message_id = 0;
-static bulb_model* model;
-
-static QString get_id()
-{
-  return QString::number(message_id++);
-}
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
@@ -198,8 +83,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-  for (auto socket : tcp_sockets) {
-    socket->close();
+  for (auto kv : tcp_sockets) {
+    kv.second->close();
   }
   udp_send_socket->close();
   udp_receive_socket->close();
@@ -270,12 +155,11 @@ void MainWindow::connect_to_all_bulbs()
     connect(&tcp_server, &QTcpServer::newConnection,
       this, &MainWindow::on_new_tcp_server_connection);
   }
-  while (tcp_sockets.size() < model->size()) {
-    tcp_sockets.append(new QTcpSocket(this));
-  }
-  for (int i = 0; i < model->size(); i++) {
-    auto& b = (*model)[i];
-    auto& s = *tcp_sockets[i];
+  for (auto& b : model->selected_bulbs()) {
+    if (tcp_sockets.find(b.id()) == tcp_sockets.end()) {
+      tcp_sockets[b.id()] = new QTcpSocket(this);
+    }
+    auto& s = *tcp_sockets[b.id()];
     if (!s.isOpen()) {
       s.connectToHost(QHostAddress(b.get_ip_str()), b.get_port());
       connect(&s, &QTcpSocket::readyRead,
@@ -287,9 +171,8 @@ void MainWindow::connect_to_all_bulbs()
 void MainWindow::on_qpb_toggle_clicked()
 {
   connect_to_all_bulbs();
-  for (int i = 0; i < model->size(); i++) {
-    auto& b = (*model)[i];
-    auto& s = *tcp_sockets[i];
+  for (auto& b : model->selected_bulbs()) {
+    auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
     cmd_str.append("{\"id\":");
     cmd_str.append(get_id());
@@ -300,26 +183,22 @@ void MainWindow::on_qpb_toggle_clicked()
 
 void MainWindow::on_horizontalSlider_valueChanged(int value)
 {
-  //Q_UNUSED(value);
-  //int pos = ui->horizontalSlider->value();
-  //QString slider_value = QString("%1").arg(pos) + "%";
-  //QByteArray *cmd_str =new QByteArray;
-  //cmd_str->clear();
-  //cmd_str->append("{\"id\":");
+  Q_UNUSED(value);
+  connect_to_all_bulbs();
+  int pos = ui->horizontalSlider->value();
+  QString slider_value = QString("%1").arg(pos) + "%";
+  QByteArray *cmd_str =new QByteArray;
+  cmd_str->clear();
+  cmd_str->append("{\"id\":");
 
-  //int device_idx = ui->comboBox->currentIndex();
-  //if (bulb.size() > 0) {
-  //  cmd_str->append(bulb[device_idx].get_id());
-  //  qDebug() << "combox index  = " << device_idx;
-
-  //  cmd_str->append(",\"method\":\"set_bright\",\"params\":[");
-  //  cmd_str->append(QString("%1").arg(pos));
-  //  cmd_str->append(", \"smooth\", 500]}\r\n");
-  //  tcp_socket.write(cmd_str->data());
-  //  qDebug() << cmd_str->data();
-  //} else {
-  //  qDebug()<<"Bulb is empty";
-  //}
+  for (auto& b : model->selected_bulbs()) {
+    auto& s = *tcp_sockets[b.id()];
+    cmd_str->append(get_id());
+    cmd_str->append(",\"method\":\"set_bright\",\"params\":[");
+    cmd_str->append(QString("%1").arg(pos));
+    cmd_str->append(", \"smooth\", 500]}\r\n");
+    s.write(cmd_str->data());
+  }
 }
 
 void MainWindow::on_qpb_initialize_db_clicked()
@@ -336,9 +215,8 @@ void MainWindow::on_qpb_color_dialog_clicked()
     hue = 0;
   }
   auto sat = static_cast<int>(color.hsvSaturationF() * 100);
-  for (int i = 0; i < model->size(); i++) {
-    auto& b = (*model)[i];
-    auto& s = *tcp_sockets[i];
+  for (auto& b : model->selected_bulbs()) {
+    auto& s = *tcp_sockets[b.id()];
     QByteArray* cmd_str = new QByteArray();
     cmd_str->clear();
     cmd_str->append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
@@ -354,9 +232,8 @@ void MainWindow::on_qpb_color_dialog_clicked()
 void MainWindow::on_qpb_wreak_havoc_clicked()
 {
   connect_to_all_bulbs();
-  for (int i = 0; i < model->size(); i++) {
-    auto& b = (*model)[i];
-    auto& s = *tcp_sockets[i];
+  for (auto& b : model->selected_bulbs()) {
+    auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
     cmd_str.append(
       QString("{\"id\":%1,\"method\":\"set_music\",\"params\":[1,\"%2\",%3]}\r\n")
@@ -384,12 +261,11 @@ void MainWindow::wreak_havoc()
   if (unlimited_tcp_sockets.size() != model->size()) {
     return;
   }
-  for (int i = 0; i < model->size(); i++) {
-    auto& b = (*model)[i];
-    if (i >= unlimited_tcp_sockets.size()) {
+  for (auto& b : model->selected_bulbs()) {
+    if (unlimited_tcp_sockets.find(b.id()) == unlimited_tcp_sockets.end()) {
       return;
     }
-    auto& s = *unlimited_tcp_sockets[i];
+    auto& s = *unlimited_tcp_sockets[b.id()];
     QByteArray cmd_str;
     //cmd_str.clear();
     //cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
@@ -418,5 +294,10 @@ void MainWindow::on_new_tcp_server_connection()
   auto& s = *tcp_server.nextPendingConnection();
   connect(&s, &QTcpSocket::readyRead,
     this, &MainWindow::on_ready_read_tcp_socket);
-  unlimited_tcp_sockets.append(&s);
+  //unlimited_tcp_sockets.append(&s);
+}
+
+QString MainWindow::get_id()
+{
+  return QString::number(message_id++);
 }

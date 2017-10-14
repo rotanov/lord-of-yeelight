@@ -71,6 +71,12 @@
     <ClCompile Include="Release\moc_storage.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="bulb_model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug\moc_bulb_model.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bulb.hpp">
@@ -89,6 +95,9 @@
   <ItemGroup>
     <CustomBuild Include="mainwindow.ui">
       <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="bulb_model.hpp">
+      <Filter>Header Files</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
