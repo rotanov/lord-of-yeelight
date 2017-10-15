@@ -7,6 +7,8 @@
 class bulb_model : public QAbstractTableModel
 {
   Q_OBJECT
+signals:
+  void set_name(::bulb& bulb, QVariant value);
 private:
   std::vector<::bulb> bulbs;
 public:

@@ -6,12 +6,14 @@ TEMPLATE = app
 SOURCES += main.cpp\
   mainwindow.cpp \
     storage.cpp \
-    bulb.cpp
+    bulb.cpp \
+    bulb_model.cpp
 
 HEADERS += \
     storage.hpp \
     bulb.hpp \
-    mainwindow.hpp
+    mainwindow.hpp \
+    bulb_model.hpp
 
 FORMS += mainwindow.ui
 

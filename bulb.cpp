@@ -1,19 +1,16 @@
 #include "bulb.hpp"
 
-bulb::bulb(void)
+bulb::bulb(QString ip, QString id, QString name, int brightness)
+  : ip_str(ip)
+  , id_str(id)
+  , internal_name_(name)
+  , brightness_(brightness)
 {
-  ip_str.clear();
-  id_str.clear();
-  brightness = 100;
-}
-
-bulb::bulb(QString ip, QString id)
-{
-  ip_str = ip;
-  id_str = id;
   bool r = false;
   id_ = id.toULongLong(&r, 16);
-  brightness = 100;
+  if (!r) {
+    throw new std::exception("");
+  }
 }
 
 QString bulb::get_ip_str() const
@@ -33,10 +30,10 @@ int bulb::get_port() const
 
 void bulb::set_brightness(int brn_value)
 {
-  brightness = brn_value;
+  brightness_ = brn_value;
 }
 
 int bulb::get_brightness() const
 {
-  return brightness;
+  return brightness_;
 }

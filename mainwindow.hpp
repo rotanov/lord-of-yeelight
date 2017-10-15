@@ -38,6 +38,7 @@ private slots:
   void wreak_havoc();
   void on_ready_read_tcp_socket();
   void on_new_tcp_server_connection();
+  void on_set_name(::bulb& bulb, QVariant value);
 
 private:
   int message_id = 0;
@@ -54,8 +55,6 @@ private:
   QHostAddress mcast_addr;
   QTcpServer tcp_server;
   QString local_ip;
-  QString bulb_ip;
-  QString bulb_id_str;
 
   void connect_to_all_bulbs();
   void discover();

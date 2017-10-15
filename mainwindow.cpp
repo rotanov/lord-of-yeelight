@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
   ui->setupUi(this);
   model = new bulb_model();
+  connect(model, &bulb_model::set_name,
+    this, &MainWindow::on_set_name);
   connect(ui->qpb_initialize_db, &QPushButton::clicked,
     this, &MainWindow::on_qpb_initialize_db_clicked);
 
@@ -100,11 +102,15 @@ void MainWindow::processPendingDatagrams()
     udp_socket->readDatagram(udp_datagram_recv.data(), udp_datagram_recv.size());
     qDebug() << udp_datagram_recv.data();
 
-    bulb_ip = sub_string("Location: yeelight://", ":");
-    bulb_id_str = sub_string("id: ", "\r\n");
-    ::bulb bulb_tmp(bulb_ip, bulb_id_str);
+    auto ip = sub_string("Location: yeelight://", ":");
+    auto id_str = sub_string("id: ", "\r\n");
+    auto name = sub_string("name: ", "\r\n");
+    int brightness = sub_string("bright: ", "\r\n").toInt();
+
+    ::bulb bulb_tmp(ip, id_str, name, brightness);
     if (!model->have_bulb(bulb_tmp)) {
       model->add_bulb(bulb_tmp);
+      connect_to_all_bulbs();
     }
   }
 }
@@ -170,7 +176,6 @@ void MainWindow::connect_to_all_bulbs()
 
 void MainWindow::on_qpb_toggle_clicked()
 {
-  connect_to_all_bulbs();
   for (auto& b : model->selected_bulbs()) {
     auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
@@ -184,7 +189,6 @@ void MainWindow::on_qpb_toggle_clicked()
 void MainWindow::on_horizontalSlider_valueChanged(int value)
 {
   Q_UNUSED(value);
-  connect_to_all_bulbs();
   int pos = ui->horizontalSlider->value();
   QString slider_value = QString("%1").arg(pos) + "%";
   QByteArray *cmd_str =new QByteArray;
@@ -208,7 +212,6 @@ void MainWindow::on_qpb_initialize_db_clicked()
 
 void MainWindow::on_qpb_color_dialog_clicked()
 {
-  connect_to_all_bulbs();
   QColor color = QColorDialog::getColor(Qt::yellow, this);
   auto hue = color.hsvHue();
   if (hue == -1) {
@@ -231,7 +234,6 @@ void MainWindow::on_qpb_color_dialog_clicked()
 
 void MainWindow::on_qpb_wreak_havoc_clicked()
 {
-  connect_to_all_bulbs();
   for (auto& b : model->selected_bulbs()) {
     auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
@@ -252,7 +254,6 @@ static int cycle = 0;
 void MainWindow::wreak_havoc()
 {
   cycle++;
-  connect_to_all_bulbs();
   auto hue = 0;// rand() % 360;
   if (hue == -1) {
     hue = 0;
@@ -295,6 +296,15 @@ void MainWindow::on_new_tcp_server_connection()
   connect(&s, &QTcpSocket::readyRead,
     this, &MainWindow::on_ready_read_tcp_socket);
   //unlimited_tcp_sockets.append(&s);
+}
+
+void MainWindow::on_set_name(::bulb & bulb, QVariant value)
+{
+  auto& s = *tcp_sockets[bulb.id()];
+  QByteArray message;
+  message.append(QString("{\"id\":%1,\"method\":\"set_name\",\"params\":[\"%2\"]}\r\n")
+    .arg(get_id(), value.toString()));
+  s.write(message);
 }
 
 QString MainWindow::get_id()

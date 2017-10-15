@@ -1,5 +1,9 @@
 ﻿#include "bulb_model.hpp"
 
+static std::vector<QString> column_names = {
+  "name", "id", "ip", "brightness",
+};
+
 bool bulb_model::have_bulb(const::bulb & bulb) const
 {
   return std::find(bulbs.begin(), bulbs.end(), bulb) != bulbs.end();
@@ -30,7 +34,7 @@ int bulb_model::rowCount(const QModelIndex & parent) const
 
 int bulb_model::columnCount(const QModelIndex & parent) const
 {
-  return 3;
+  return column_names.size();
 }
 
 QVariant bulb_model::data(const QModelIndex & index, int role) const
@@ -41,9 +45,10 @@ QVariant bulb_model::data(const QModelIndex & index, int role) const
   switch (role) {
   case Qt::DisplayRole: {
     switch (column) {
-    case 0: return b.get_id_str();
-    case 1: return b.get_ip_str();
-    case 2: return b.get_port();
+    case 0: return b.internal_name();
+    case 1: return b.get_id_str();
+    case 2: return b.get_ip_str();
+    case 3: return b.get_brightness();
     }
   }
   case Qt::CheckStateRole: {
@@ -65,6 +70,16 @@ bool bulb_model::setData(const QModelIndex & index, const QVariant & value, int 
   if (role == Qt::CheckStateRole) {
     b.selected = value.toBool();
     return true;
+  } else if (role == Qt::EditRole) {
+    switch (column) {
+    case 0: {
+      emit set_name(b, value);
+      //emit dataChanged(QModelIndex(), QModelIndex());
+      return true;
+    }
+    default:
+      return false;
+    }
   }
   return false;
 }
@@ -77,11 +92,7 @@ QVariant bulb_model::headerData(int section, Qt::Orientation orientation, int ro
   if (orientation != Qt::Horizontal) {
     return QVariant();
   }
-  switch (section) {
-  case 0: return "id";
-  case 1: return "ip";
-  case 2: return "port";
-  }
+  return column_names[section];
 }
 
 Qt::ItemFlags bulb_model::flags(const QModelIndex & index) const
@@ -89,7 +100,7 @@ Qt::ItemFlags bulb_model::flags(const QModelIndex & index) const
   int column = index.column();
   Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
   if (column == 0) {
-    flags |= Qt::ItemIsUserCheckable;
+    flags |= Qt::ItemIsUserCheckable | Qt::ItemIsEditable;
   }
   return flags;
 }
