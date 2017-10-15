@@ -24,7 +24,10 @@ class MainWindow : public QMainWindow
 public:
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
-  QByteArray sub_string(const char* start_str, const char* end_str);
+
+signals:
+  void write_to_socket(QTcpSocket* socket, const QByteArray message);
+  void done_consuming_unlimited_sockets();
 
 private slots:
   void processPendingDatagrams();
@@ -39,6 +42,8 @@ private slots:
   void on_ready_read_tcp_socket();
   void on_new_tcp_server_connection();
   void on_set_name(::bulb& bulb, QVariant value);
+  void on_write_to_socket(QTcpSocket* socket, const QByteArray message);
+  void on_done_consuming_unlimited_sockets();
 
 private:
   int message_id = 0;
@@ -48,15 +53,16 @@ private:
   QUdpSocket* udp_receive_socket;
   QUdpSocket* udp_send_socket;
   uint16_t udp_port;
-  QByteArray udp_datagram_recv;
-  std::unordered_map<uint16_t, QTcpSocket*> tcp_sockets;
-  std::unordered_map<uint16_t, QTcpSocket*> unlimited_tcp_sockets;
-  QList<::bulb>::iterator ib;
+  using socket_map = std::unordered_map<uint64_t, QTcpSocket*>;
+  socket_map tcp_sockets;
+  socket_map unlimited_tcp_sockets;
+  uint64_t pending_bulb_id = -1;
   QHostAddress mcast_addr;
   QTcpServer tcp_server;
   QString local_ip;
 
   void connect_to_all_bulbs();
   void discover();
-  QString get_id();
+  QString next_message_id();
+  QByteArray sub_string(const QByteArray& source, const char* start_str, const char* end_str);
 };

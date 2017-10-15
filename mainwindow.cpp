@@ -11,6 +11,8 @@
 #include <QColorDialog>
 #include <QVBoxLayout>
 
+#include <functional>
+
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
@@ -47,6 +49,10 @@ MainWindow::MainWindow(QWidget *parent)
       }
     }
   }
+
+  // for writing to TCP sockets from threads
+  connect(this, &MainWindow::write_to_socket,
+    this, &MainWindow::on_write_to_socket);
 
   {
     udp_send_socket = new QUdpSocket(this);
@@ -96,16 +102,17 @@ MainWindow::~MainWindow()
 void MainWindow::processPendingDatagrams()
 {
   auto udp_socket = static_cast<QUdpSocket*>(QObject::sender());
+  QByteArray buffer;
   while (udp_socket->hasPendingDatagrams()) {
     qDebug() << "udp receive data";
-    udp_datagram_recv.resize(udp_socket->pendingDatagramSize());
-    udp_socket->readDatagram(udp_datagram_recv.data(), udp_datagram_recv.size());
-    qDebug() << udp_datagram_recv.data();
+    buffer.resize(udp_socket->pendingDatagramSize());
+    udp_socket->readDatagram(buffer.data(), buffer.size());
+    qDebug() << buffer.data();
 
-    auto ip = sub_string("Location: yeelight://", ":");
-    auto id_str = sub_string("id: ", "\r\n");
-    auto name = sub_string("name: ", "\r\n");
-    int brightness = sub_string("bright: ", "\r\n").toInt();
+    auto ip = sub_string(buffer, "Location: yeelight://", ":");
+    auto id_str = sub_string(buffer, "id: ", "\r\n");
+    auto name = sub_string(buffer, "name: ", "\r\n");
+    int brightness = sub_string(buffer, "bright: ", "\r\n").toInt();
 
     ::bulb bulb_tmp(ip, id_str, name, brightness);
     if (!model->have_bulb(bulb_tmp)) {
@@ -115,7 +122,7 @@ void MainWindow::processPendingDatagrams()
   }
 }
 
-QByteArray MainWindow::sub_string(const char* start_str, const char* end_str)
+QByteArray MainWindow::sub_string(const QByteArray& source, const char* start_str, const char* end_str)
 {
   QByteArray result;
   int pos1 = -1;
@@ -123,9 +130,9 @@ QByteArray MainWindow::sub_string(const char* start_str, const char* end_str)
   result.clear();
   auto prefix = QByteArray(start_str);
   auto suffix = QByteArray(end_str);
-  pos1 = udp_datagram_recv.indexOf(prefix, 0);
+  pos1 = source.indexOf(prefix, 0);
   if (pos1 != -1) {
-    result = udp_datagram_recv.mid(pos1);
+    result = source.mid(pos1);
     pos1 = prefix.length();
     result = result.mid(pos1);
     pos2 = result.indexOf(suffix);
@@ -180,7 +187,7 @@ void MainWindow::on_qpb_toggle_clicked()
     auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
     cmd_str.append("{\"id\":");
-    cmd_str.append(get_id());
+    cmd_str.append(next_message_id());
     cmd_str.append(",\"method\":\"toggle\",\"params\":[]}\r\n");
     s.write(cmd_str.data());
   }
@@ -197,7 +204,7 @@ void MainWindow::on_horizontalSlider_valueChanged(int value)
 
   for (auto& b : model->selected_bulbs()) {
     auto& s = *tcp_sockets[b.id()];
-    cmd_str->append(get_id());
+    cmd_str->append(next_message_id());
     cmd_str->append(",\"method\":\"set_bright\",\"params\":[");
     cmd_str->append(QString("%1").arg(pos));
     cmd_str->append(", \"smooth\", 500]}\r\n");
@@ -223,26 +230,61 @@ void MainWindow::on_qpb_color_dialog_clicked()
     QByteArray* cmd_str = new QByteArray();
     cmd_str->clear();
     cmd_str->append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
-      .arg(get_id(), QString::number(hue), QString::number(sat)));
+      .arg(next_message_id(), QString::number(hue), QString::number(sat)));
     s.write(cmd_str->data());
     cmd_str->clear();
     cmd_str->append(QString("{\"id\":%1,\"method\":\"set_bright\",\"params\":[%2,\"sudden\",500]}\r\n")
-      .arg(get_id(), QString::number(ui->horizontalSlider->value())));
+      .arg(next_message_id(), QString::number(ui->horizontalSlider->value())));
     s.write(cmd_str->data());
   }
 }
 
+class delegate_thread : public QThread
+{
+private:
+  std::function<void()> action;
+public:
+  delegate_thread(std::function<void()> action)
+    : action(action) {}
+  virtual void run() override
+  {
+    action();
+  }
+};
+
+void MainWindow::on_write_to_socket(QTcpSocket* socket, const QByteArray message)
+{
+  socket->write(message);
+}
+
 void MainWindow::on_qpb_wreak_havoc_clicked()
 {
-  for (auto& b : model->selected_bulbs()) {
-    auto& s = *tcp_sockets[b.id()];
-    QByteArray cmd_str;
-    cmd_str.append(
-      QString("{\"id\":%1,\"method\":\"set_music\",\"params\":[1,\"%2\",%3]}\r\n")
-      .arg(get_id(), local_ip, QString::number(tcp_server.serverPort()))
-      );
-    s.write(cmd_str.data());
-  }
+  connect(this, &MainWindow::done_consuming_unlimited_sockets,
+    this, &MainWindow::on_done_consuming_unlimited_sockets);
+  auto thread = new delegate_thread([=]() {
+    for (auto& b : model->selected_bulbs()) {
+      auto& s = *tcp_sockets[b.id()];
+      QByteArray cmd_str;
+      auto message_id = next_message_id();
+      cmd_str.append(
+        QString("{\"id\":%1,\"method\":\"set_music\",\"params\":[1,\"%2\",%3]}\r\n")
+        .arg(message_id, local_ip, QString::number(tcp_server.serverPort()))
+        );
+      pending_bulb_id = b.id();
+      emit write_to_socket(&s, cmd_str);
+      while (pending_bulb_id != -1) {
+        QThread::msleep(1);
+      }
+    }
+    emit done_consuming_unlimited_sockets();
+  });
+  connect(thread, &QThread::finished,
+    thread, &QObject::deleteLater);
+  thread->start();
+}
+
+void MainWindow::on_done_consuming_unlimited_sockets()
+{
   auto timer = new QTimer(this);
   timer->setInterval(200);
   timer->start();
@@ -254,34 +296,31 @@ static int cycle = 0;
 void MainWindow::wreak_havoc()
 {
   cycle++;
-  auto hue = 0;// rand() % 360;
+  auto hue = rand() % 360;
   if (hue == -1) {
     hue = 0;
   }
   auto sat = (cycle % 2) * 100;// rand() % 100;
-  if (unlimited_tcp_sockets.size() != model->size()) {
-    return;
-  }
   for (auto& b : model->selected_bulbs()) {
     if (unlimited_tcp_sockets.find(b.id()) == unlimited_tcp_sockets.end()) {
       return;
     }
     auto& s = *unlimited_tcp_sockets[b.id()];
     QByteArray cmd_str;
-    //cmd_str.clear();
-    //cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
-    //  .arg(get_id(), QString::number(hue), QString::number(sat)));
-    //s.write(cmd_str.data());
+    cmd_str.clear();
+    cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
+      .arg(next_message_id(), QString::number(hue), QString::number(sat)));
+    s.write(cmd_str.data());
     cmd_str.clear();
     cmd_str.append(QString("{\"id\":%1,\"method\":\"set_bright\",\"params\":[%2,\"sudden\",0]}\r\n")
-      .arg(get_id(), QString::number((cycle % 2) == 0 ? 1 : 100)));
+      .arg(next_message_id(), QString::number((cycle % 2) == 0 ? 1 : 100)));
     s.write(cmd_str.data());
   }
 }
 
 void MainWindow::on_ready_read_tcp_socket()
 {
-  QTcpSocket *socket = static_cast<QTcpSocket*>(sender());
+  QTcpSocket *socket = qobject_cast<QTcpSocket*>(sender());
   QByteArray buffer;
   while (socket->bytesAvailable() > 0)
   {
@@ -295,7 +334,8 @@ void MainWindow::on_new_tcp_server_connection()
   auto& s = *tcp_server.nextPendingConnection();
   connect(&s, &QTcpSocket::readyRead,
     this, &MainWindow::on_ready_read_tcp_socket);
-  //unlimited_tcp_sockets.append(&s);
+  unlimited_tcp_sockets[pending_bulb_id] = &s;
+  pending_bulb_id = -1;
 }
 
 void MainWindow::on_set_name(::bulb & bulb, QVariant value)
@@ -303,11 +343,11 @@ void MainWindow::on_set_name(::bulb & bulb, QVariant value)
   auto& s = *tcp_sockets[bulb.id()];
   QByteArray message;
   message.append(QString("{\"id\":%1,\"method\":\"set_name\",\"params\":[\"%2\"]}\r\n")
-    .arg(get_id(), value.toString()));
+    .arg(next_message_id(), value.toString()));
   s.write(message);
 }
 
-QString MainWindow::get_id()
+QString MainWindow::next_message_id()
 {
   return QString::number(message_id++);
 }
