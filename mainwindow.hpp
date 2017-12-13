@@ -44,6 +44,7 @@ private slots:
   void on_set_name(::bulb& bulb, QVariant value);
   void on_write_to_socket(QTcpSocket* socket, const QByteArray message);
   void on_done_consuming_unlimited_sockets();
+  void on_toggle_all_clicked(bool isSelected);
 
 private:
   int message_id = 0;

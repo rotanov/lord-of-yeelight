@@ -1,7 +1,7 @@
 ﻿#include "bulb_model.hpp"
 
 static std::vector<QString> column_names = {
-  "name", "id", "ip", "brightness",
+  "", "name", "id", "ip", "brightness",
 };
 
 bool bulb_model::have_bulb(const::bulb & bulb) const
@@ -45,10 +45,11 @@ QVariant bulb_model::data(const QModelIndex & index, int role) const
   switch (role) {
   case Qt::DisplayRole: {
     switch (column) {
-    case 0: return b.internal_name();
-    case 1: return b.get_id_str();
-    case 2: return b.get_ip_str();
-    case 3: return b.get_brightness();
+    case 1: return b.internal_name();
+    case 2: return b.get_id_str();
+    case 3: return b.get_ip_str();
+    case 4: return b.get_brightness();
+    default: return QVariant();
     }
   }
   case Qt::CheckStateRole: {

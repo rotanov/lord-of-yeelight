@@ -10,6 +10,7 @@
 #include <QTableWidget>
 #include <QColorDialog>
 #include <QVBoxLayout>
+#include "header_view_with_checkbox.hpp"
 
 #include <functional>
 
@@ -31,9 +32,14 @@ MainWindow::MainWindow(QWidget *parent)
     qtwBulbs->setSelectionBehavior(QAbstractItemView::SelectRows);
     qtwBulbs->verticalHeader()->hide();
     //qtwBulbs->horizontalHeader()->setStretchLastSection(true);
+    HeaderViewWithCheckbox *headerWithCheckbox = new HeaderViewWithCheckbox(Qt::Horizontal);
+    connect(headerWithCheckbox, &HeaderViewWithCheckbox::on_checkbox_click, this, &MainWindow::on_toggle_all_clicked);
+    qtwBulbs->setHorizontalHeader(headerWithCheckbox);
     qtwBulbs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->centralWidget->layout()->addWidget(qtwBulbs);
     qtwBulbs->setModel(model);
+    qtwBulbs->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+    qtwBulbs->horizontalHeader()->resizeSection(0, 20);
   }
 
   mcast_addr = "239.255.255.250";
@@ -281,6 +287,17 @@ void MainWindow::on_qpb_wreak_havoc_clicked()
   connect(thread, &QThread::finished,
     thread, &QObject::deleteLater);
   thread->start();
+}
+
+void MainWindow::on_toggle_all_clicked(bool isSelected)
+{
+  int row = 0;
+  for (auto& selected_bulb : model->bulbs) {
+    QModelIndex index = model->index(row, 0);
+    model->setData(index, isSelected, Qt::CheckStateRole);
+    model->dataChanged(index, index);
+    row++;
+  }
 }
 
 void MainWindow::on_done_consuming_unlimited_sockets()
