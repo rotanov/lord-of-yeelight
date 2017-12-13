@@ -10,8 +10,8 @@ class bulb_model : public QAbstractTableModel
 signals:
   void set_name(::bulb& bulb, QVariant value);
 private:
-  std::vector<::bulb> bulbs;
 public:
+  std::vector<::bulb> bulbs;
   class selected_bulbs_proxy
   {
   public:

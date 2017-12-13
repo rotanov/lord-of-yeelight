@@ -7,13 +7,15 @@ SOURCES += main.cpp\
   mainwindow.cpp \
     storage.cpp \
     bulb.cpp \
-    bulb_model.cpp
+    bulb_model.cpp \
+    custom_header.cpp
 
 HEADERS += \
     storage.hpp \
     bulb.hpp \
     mainwindow.hpp \
-    bulb_model.hpp
+    bulb_model.hpp \
+    custom_header.hpp
 
 FORMS += mainwindow.ui
 
