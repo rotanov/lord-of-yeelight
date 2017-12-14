@@ -1,18 +1,23 @@
-﻿#include "mainwindow.hpp"
-#include "ui_mainwindow.h"
+﻿#include <cstdint>
+#include <functional>
+
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork>
 #include <QByteArray>
-#include <stdint.h>
 #include <QDebug>
 #include <QProcess>
 #include <QTableView>
 #include <QTableWidget>
 #include <QColorDialog>
 #include <QVBoxLayout>
-#include "header_view_with_checkbox.hpp"
+#include <QScreen>
+#include <QLabel>
+#include <QGuiApplication>
+#include <QPainter>
 
-#include <functional>
+#include "mainwindow.hpp"
+#include "ui_mainwindow.h"
+#include "header_view_with_checkbox.hpp"
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
@@ -92,6 +97,20 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::processPendingDatagrams);
   }
 
+  auto s0 = QApplication::screens()[0];
+  auto r = s0->geometry();
+  auto pixmap = s0->grabWindow(0, r.left(), r.top(), r.width(), r.height());
+  auto imgWidget = new QLabel(this);
+  imgWidget->setPixmap(pixmap.scaled(480, 262));
+  ui->centralWidget->layout()->addWidget(imgWidget);
+  auto timer = new QTimer(this);
+  timer->setInterval(500);
+  connect(timer, &QTimer::timeout, [=]() {
+    auto r = s0->geometry();
+    auto pixmap = s0->grabWindow(0, r.left(), r.top(), r.width(), r.height());
+    imgWidget->setPixmap(pixmap.scaled(480, 262));
+  });
+  timer->start();
   discover();
 }
 
@@ -319,6 +338,9 @@ void MainWindow::on_done_consuming_unlimited_sockets()
 }
 
 static int cycle = 0;
+static int prev_hue = -1;
+static int prev_bright = -1;
+static int prev_sat = -1;
 
 void MainWindow::wreak_havoc()
 {
@@ -327,20 +349,57 @@ void MainWindow::wreak_havoc()
   if (hue == -1) {
     hue = 0;
   }
-  auto sat = (cycle % 2) * 100;// rand() % 100;
+  auto sat = (cycle % 2) * 100;
+
+  auto s0 = QApplication::screens()[0];
+  auto r = s0->geometry();
+  auto pixmap = s0->grabWindow(0, r.left(), r.top(), r.width(), r.height());
+  auto img = pixmap.toImage();
+  double totalBrightness = 0.0;
+  double totalRed = 0.0;
+  double totalBlue = 0.0;
+  double totalGreen = 0.0;
+  for (int y = 0; y < img.height(); y++) {
+    QRgb *line = (QRgb *)img.scanLine(y);
+    for (int x = 0; x < pixmap.width(); x++) {
+      // line[x] has an individual pixel
+      auto c = line[x];
+      totalBrightness += (qRed(c) + qGreen(c) + qBlue(c)) / 3.0f;
+      totalRed += qRed(c);
+      totalBlue += qBlue(c);
+      totalGreen += qGreen(c);
+    }
+  }
+  int n = img.width() * img.height();
+  float brightness = totalBrightness / n;
+  brightness = brightness / 255.0f * 100.0f;
+
+  auto color = QColor(totalRed / n, totalGreen / n, totalBlue / n);
+  hue = color.hueF() * 359.0f;
+  sat = color.saturationF() * 100.0f;
+  if (hue == prev_hue && sat == prev_sat && (int)brightness == prev_bright) {
+    return;
+  }
+  prev_hue = hue;
+  prev_bright = brightness;
+  prev_sat = sat;
+
   for (auto& b : model->selected_bulbs()) {
     if (unlimited_tcp_sockets.find(b.id()) == unlimited_tcp_sockets.end()) {
       return;
     }
     auto& s = *unlimited_tcp_sockets[b.id()];
     QByteArray cmd_str;
+    auto msg_id = next_message_id();
     cmd_str.clear();
-    cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
-      .arg(next_message_id(), QString::number(hue), QString::number(sat)));
+    cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"smooth\",500]}\r\n")
+      .arg(msg_id, QString::number(hue), QString::number(sat)));
     s.write(cmd_str.data());
+
     cmd_str.clear();
-    cmd_str.append(QString("{\"id\":%1,\"method\":\"set_bright\",\"params\":[%2,\"sudden\",0]}\r\n")
-      .arg(next_message_id(), QString::number((cycle % 2) == 0 ? 1 : 100)));
+    msg_id = next_message_id();
+    cmd_str.append(QString("{\"id\":%1,\"method\":\"set_bright\",\"params\":[%2,\"smooth\",500]}\r\n")
+      .arg(msg_id, QString::number((int)brightness)));// QString::number((cycle % 2) == 0 ? 1 : 100)));
     s.write(cmd_str.data());
   }
 }
