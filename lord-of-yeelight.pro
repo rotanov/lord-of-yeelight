@@ -8,14 +8,14 @@ SOURCES += main.cpp\
     storage.cpp \
     bulb.cpp \
     bulb_model.cpp \
-    custom_header.cpp
+    header_view_with_checkbox.cpp \
 
 HEADERS += \
     storage.hpp \
     bulb.hpp \
     mainwindow.hpp \
     bulb_model.hpp \
-    custom_header.hpp
+    header_view_with_checkbox.hpp \
 
 FORMS += mainwindow.ui
 

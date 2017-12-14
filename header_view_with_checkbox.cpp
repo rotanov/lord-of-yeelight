@@ -1,13 +1,18 @@
 #include <QtGui>
 #include <QHeaderView>
 #include <QStyleOptionViewItem>
+
 #include "header_view_with_checkbox.hpp"
 
 namespace Ui {
   class CustomHeader;
 }
-HeaderViewWithCheckbox::HeaderViewWithCheckbox(Qt::Orientation orientation, QWidget * parent) 
-  : QHeaderView(orientation, parent) {}
+
+HeaderViewWithCheckbox::HeaderViewWithCheckbox(Qt::Orientation orientation, QWidget * parent)
+  : QHeaderView(orientation, parent)
+{
+
+}
 
 void HeaderViewWithCheckbox::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
 {
