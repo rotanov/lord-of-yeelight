@@ -120,6 +120,10 @@ void MainWindow::processPendingDatagrams()
     auto name = sub_string(buffer, "name: ", "\r\n");
     int brightness = sub_string(buffer, "bright: ", "\r\n").toInt();
 
+    if (ip.size() == 0) {
+      return;
+    }
+
     ::bulb bulb_tmp(ip, id_str, name, brightness);
     if (!model->have_bulb(bulb_tmp)) {
       model->add_bulb(bulb_tmp);
