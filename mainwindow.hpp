@@ -66,4 +66,6 @@ private:
   void discover();
   QString next_message_id();
   QByteArray sub_string(const QByteArray& source, const char* start_str, const char* end_str);
+  void set_color(QColor color);
+  void set_brightness(int value);
 };

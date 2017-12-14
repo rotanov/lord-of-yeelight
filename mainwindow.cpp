@@ -205,20 +205,21 @@ void MainWindow::on_qpb_toggle_clicked()
 
 void MainWindow::on_horizontalSlider_valueChanged(int value)
 {
-  Q_UNUSED(value);
-  int pos = ui->horizontalSlider->value();
-  QString slider_value = QString("%1").arg(pos) + "%";
-  QByteArray *cmd_str =new QByteArray;
-  cmd_str->clear();
-  cmd_str->append("{\"id\":");
+  set_brightness(value);
+}
 
+void MainWindow::set_brightness(int value)
+{
   for (auto& b : model->selected_bulbs()) {
     auto& s = *tcp_sockets[b.id()];
-    cmd_str->append(next_message_id());
-    cmd_str->append(",\"method\":\"set_bright\",\"params\":[");
-    cmd_str->append(QString("%1").arg(pos));
-    cmd_str->append(", \"smooth\", 500]}\r\n");
-    s.write(cmd_str->data());
+    QByteArray cmd_str;
+    cmd_str.clear();
+    cmd_str.append("{\"id\":");
+    cmd_str.append(next_message_id());
+    cmd_str.append(",\"method\":\"set_bright\",\"params\":[");
+    cmd_str.append(QString("%1").arg(value));
+    cmd_str.append(", \"smooth\", 500]}\r\n");
+    s.write(cmd_str.data());
   }
 }
 
@@ -230,6 +231,11 @@ void MainWindow::on_qpb_initialize_db_clicked()
 void MainWindow::on_qpb_color_dialog_clicked()
 {
   QColor color = QColorDialog::getColor(Qt::yellow, this);
+  set_color(color);
+}
+
+void MainWindow::set_color(QColor color)
+{
   auto hue = color.hsvHue();
   if (hue == -1) {
     hue = 0;
