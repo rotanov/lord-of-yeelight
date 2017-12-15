@@ -6,16 +6,16 @@
 #include "storage.hpp"
 
 namespace Ui {
-class MainWindow;
+class main_window;
 }
 
-class MainWindow : public QMainWindow
+class main_window : public QMainWindow
 {
   Q_OBJECT
 
 public:
-  explicit MainWindow(QWidget *parent = 0);
-  ~MainWindow();
+  explicit main_window(QWidget *parent = 0);
+  virtual ~main_window();
 
 private slots:
   void on_qpb_connect_clicked();
@@ -29,5 +29,5 @@ private slots:
 private:
   bulb_model* model;
   storage storage;
-  Ui::MainWindow *ui;
+  Ui::main_window *ui;
 };

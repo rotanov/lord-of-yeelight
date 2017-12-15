@@ -1,10 +1,10 @@
 QT += core gui widgets sql network
 
-TARGET = YeelightWifiBulbLanCtrl
+TARGET = LordOfYeelight
 TEMPLATE = app
 
 SOURCES += main.cpp\
-  mainwindow.cpp \
+    main_window.cpp \
     storage.cpp \
     bulb.cpp \
     bulb_model.cpp \
@@ -13,10 +13,10 @@ SOURCES += main.cpp\
 HEADERS += \
     storage.hpp \
     bulb.hpp \
-    mainwindow.hpp \
+    main_window.hpp \
     bulb_model.hpp \
     header_view_with_checkbox.hpp \
 
-FORMS += mainwindow.ui
+FORMS += main_window.ui
 
 RC_FILE = app.rc

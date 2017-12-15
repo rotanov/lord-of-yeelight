@@ -7,19 +7,18 @@
 #include <QScreen>
 #include <QLabel>
 
-#include "mainwindow.hpp"
-#include "ui_mainwindow.h"
+#include "main_window.hpp"
+#include "ui_main_window.h"
 #include "header_view_with_checkbox.hpp"
 
-MainWindow::MainWindow(QWidget *parent)
+main_window::main_window(QWidget *parent)
   : QMainWindow(parent)
-  , ui(new Ui::MainWindow)
+  , ui(new Ui::main_window)
 {
   ui->setupUi(this);
-  MainWindow::setWindowTitle("Lord of Yeelight");
   model = new bulb_model();
   connect(ui->qpb_initialize_db, &QPushButton::clicked,
-    this, &MainWindow::on_qpb_initialize_db_clicked);
+    this, &main_window::on_qpb_initialize_db_clicked);
 
   {
     auto qtwBulbs = new QTableView(this->centralWidget());
@@ -55,43 +54,43 @@ MainWindow::MainWindow(QWidget *parent)
   model->discover_bulbs();
 }
 
-MainWindow::~MainWindow()
+main_window::~main_window()
 {
   delete ui;
 }
 
-void MainWindow::on_qpb_discover_clicked()
+void main_window::on_qpb_discover_clicked()
 {
   model->discover_bulbs();
 }
 
-void MainWindow::on_qpb_connect_clicked()
+void main_window::on_qpb_connect_clicked()
 {
   model->connect_to_all_bulbs();
 }
 
-void MainWindow::on_qpb_toggle_clicked()
+void main_window::on_qpb_toggle_clicked()
 {
   model->toggle_bulbs();
 }
 
-void MainWindow::on_horizontalSlider_valueChanged(int value)
+void main_window::on_horizontalSlider_valueChanged(int value)
 {
   model->set_brightness(value);
 }
 
-void MainWindow::on_qpb_initialize_db_clicked()
+void main_window::on_qpb_initialize_db_clicked()
 {
   storage.initialize_db();
 }
 
-void MainWindow::on_qpb_color_dialog_clicked()
+void main_window::on_qpb_color_dialog_clicked()
 {
   QColor color = QColorDialog::getColor(Qt::yellow, this);
   model->set_color(color);
 }
 
-void MainWindow::on_qpb_wreak_havoc_clicked()
+void main_window::on_qpb_wreak_havoc_clicked()
 {
   model->begin_havok();
 }
