@@ -8,13 +8,13 @@ namespace Ui {
   class CustomHeader;
 }
 
-HeaderViewWithCheckbox::HeaderViewWithCheckbox(Qt::Orientation orientation, QWidget * parent)
+header_view_with_checkbox::header_view_with_checkbox(Qt::Orientation orientation, QWidget * parent)
   : QHeaderView(orientation, parent)
 {
 
 }
 
-void HeaderViewWithCheckbox::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
+void header_view_with_checkbox::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
 {
   QHeaderView::paintSection(painter, rect, logicalIndex);
   if (logicalIndex == 0) {
@@ -29,7 +29,7 @@ void HeaderViewWithCheckbox::paintSection(QPainter *painter, const QRect &rect, 
   }
 }
 
-void HeaderViewWithCheckbox::mousePressEvent(QMouseEvent *event)
+void header_view_with_checkbox::mousePressEvent(QMouseEvent *event)
 {
   int section = logicalIndexAt(event->pos());
 

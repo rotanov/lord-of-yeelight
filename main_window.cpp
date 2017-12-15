@@ -24,10 +24,10 @@ main_window::main_window(QWidget *parent)
     auto qtwBulbs = new QTableView(this->centralWidget());
     qtwBulbs->setSelectionBehavior(QAbstractItemView::SelectRows);
     qtwBulbs->verticalHeader()->hide();
-    HeaderViewWithCheckbox *headerWithCheckbox = new HeaderViewWithCheckbox(Qt::Horizontal);
-    connect(headerWithCheckbox, &HeaderViewWithCheckbox::on_checkbox_click,
+    header_view_with_checkbox *header_view_with_checkbox = new ::header_view_with_checkbox(Qt::Horizontal);
+    connect(header_view_with_checkbox, &header_view_with_checkbox::on_checkbox_click,
       model, &bulb_model::change_selection_state_for_all_bulbs);
-    qtwBulbs->setHorizontalHeader(headerWithCheckbox);
+    qtwBulbs->setHorizontalHeader(header_view_with_checkbox);
     qtwBulbs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->centralWidget->layout()->addWidget(qtwBulbs);
     qtwBulbs->setModel(model);
