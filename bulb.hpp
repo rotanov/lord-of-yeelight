@@ -16,6 +16,7 @@ private:
   uint64_t id_;
   QString user_name_;
   QString internal_name_;
+
 public:
   bool selected = true;
   bulb(QString ip, QString id, QString name, int brightness);
