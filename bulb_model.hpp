@@ -69,6 +69,7 @@ public:
   std::vector<::bulb> bulbs;
   void set_color(QColor color);
   void set_brightness(int value);
+  void set_color_temperature(int value);
   void toggle_bulbs();
   void discover_bulbs();
   void connect_to_all_bulbs();

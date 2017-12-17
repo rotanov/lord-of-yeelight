@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include <QScreen>
 #include <QLabel>
+#include <QComboBox>
 
 #include "main_window.hpp"
 #include "ui_main_window.h"
@@ -36,19 +37,29 @@ main_window::main_window(QWidget *parent)
   }
 
   {
-    auto s0 = QApplication::screens()[0];
-    auto r = s0->geometry();
-    auto pixmap = s0->grabWindow(0, r.left(), r.top(), r.width(), r.height());
+    auto qcbSelectScreen = new QComboBox(this);
+    screenIndex = 0;
+    for (auto& s : QApplication::screens()) {
+      qcbSelectScreen->addItem(s->name(), screenIndex);
+      screenIndex++;
+    }
+    screenIndex = 0;
+    ui->centralWidget->layout()->addWidget(qcbSelectScreen);
+    connect(qcbSelectScreen, QOverload<int>::of(&QComboBox::currentIndexChanged), [&](int index){
+      screenIndex = index;
+    });
     auto imgWidget = new QLabel(this);
-    imgWidget->setPixmap(pixmap.scaled(480, 262));
     ui->centralWidget->layout()->addWidget(imgWidget);
     auto timer = new QTimer(this);
     timer->setInterval(500);
-    connect(timer, &QTimer::timeout, [=]() {
+    auto updateScreen = [=]() {
+      auto s0 = QApplication::screens()[screenIndex];
       auto r = s0->geometry();
-      auto pixmap = s0->grabWindow(0, r.left(), r.top(), r.width(), r.height());
+      auto pixmap = s0->grabWindow(screenIndex, r.left(), r.top(), r.width(), r.height());
       imgWidget->setPixmap(pixmap.scaled(480, 262));
-    });
+    };
+    connect(timer, &QTimer::timeout, updateScreen);
+    updateScreen();
     timer->start();
   }
   model->discover_bulbs();
@@ -77,6 +88,11 @@ void main_window::on_qpb_toggle_clicked()
 void main_window::on_horizontalSlider_valueChanged(int value)
 {
   model->set_brightness(value);
+}
+
+void main_window::on_q_slider_color_temperature_valueChanged(int value)
+{
+  model->set_color_temperature(value);
 }
 
 void main_window::on_qpb_initialize_db_clicked()

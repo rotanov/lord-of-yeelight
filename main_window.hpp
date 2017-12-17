@@ -25,9 +25,11 @@ private slots:
   void on_qpb_initialize_db_clicked();
   void on_qpb_color_dialog_clicked();
   void on_qpb_wreak_havoc_clicked();
+  void on_q_slider_color_temperature_valueChanged(int value);
 
 private:
   bulb_model* model;
   storage storage;
   Ui::main_window *ui;
+  int screenIndex = 0;
 };

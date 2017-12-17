@@ -434,6 +434,21 @@ void bulb_model::set_brightness(int value)
   }
 }
 
+void bulb_model::set_color_temperature(int value)
+{
+  for (auto& b : this->selected_bulbs()) {
+    auto& s = *tcp_sockets[b.id()];
+    QByteArray cmd_str;
+    cmd_str.clear();
+    cmd_str.append("{\"id\":");
+    cmd_str.append(next_message_id());
+    cmd_str.append(",\"method\":\"set_ct_abx\",\"params\":[");
+    cmd_str.append(QString("%1").arg(value));
+    cmd_str.append(", \"smooth\", 500]}\r\n");
+    s.write(cmd_str.data());
+  }
+}
+
 void bulb_model::change_selection_state_for_all_bulbs(bool is_selected)
 {
   for (auto&& bulb : bulbs) {
