@@ -35,7 +35,7 @@ bulb_model::bulb_model()
   connect(this, &bulb_model::set_name,
     this, &bulb_model::on_set_name);
 
-  mcast_addr = "239.255.255.250";
+  mcast_addr = QHostAddress("239.255.255.250");
   udp_port = 1982;
 
   {
@@ -238,13 +238,13 @@ void bulb_model::wreak_havoc()
     auto msg_id = next_message_id();
     cmd_str.clear();
     cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"smooth\",500]}\r\n")
-      .arg(msg_id, QString::number(hue), QString::number(sat)));
+      .arg(msg_id, QString::number(hue), QString::number(sat)).toUtf8());
     s.write(cmd_str.data());
 
     cmd_str.clear();
     msg_id = next_message_id();
     cmd_str.append(QString("{\"id\":%1,\"method\":\"set_bright\",\"params\":[%2,\"smooth\",500]}\r\n")
-      .arg(msg_id, QString::number((int)brightness)));// QString::number((cycle % 2) == 0 ? 1 : 100)));
+      .arg(msg_id, QString::number((int)brightness)).toUtf8());// QString::number((cycle % 2) == 0 ? 1 : 100)));
     s.write(cmd_str.data());
   }
 }
@@ -274,7 +274,7 @@ void bulb_model::on_set_name(::bulb & bulb, QVariant value)
   auto& s = *tcp_sockets[bulb.id()];
   QByteArray message;
   message.append(QString("{\"id\":%1,\"method\":\"set_name\",\"params\":[\"%2\"]}\r\n")
-    .arg(next_message_id(), value.toString()));
+    .arg(next_message_id(), value.toString()).toUtf8());
   s.write(message);
 }
 
@@ -294,7 +294,7 @@ void bulb_model::begin_havok()
       auto message_id = next_message_id();
       cmd_str.append(
         QString("{\"id\":%1,\"method\":\"set_music\",\"params\":[1,\"%2\",%3]}\r\n")
-        .arg(message_id, local_ip, QString::number(tcp_server.serverPort()))
+        .arg(message_id, local_ip, QString::number(tcp_server.serverPort())).toUtf8()
         );
       pending_bulb_id = b.id();
       emit write_to_socket(&s, cmd_str);
@@ -321,7 +321,7 @@ void bulb_model::set_color(QColor color)
     QByteArray cmd_str;
     cmd_str.clear();
     cmd_str.append(QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"sudden\",500]}\r\n")
-      .arg(next_message_id(), QString::number(hue), QString::number(sat)));
+      .arg(next_message_id(), QString::number(hue), QString::number(sat)).toUtf8());
     s.write(cmd_str.data());
   }
 }
@@ -367,7 +367,7 @@ void bulb_model::toggle_bulbs()
     auto& s = *tcp_sockets[b.id()];
     QByteArray cmd_str;
     cmd_str.append("{\"id\":");
-    cmd_str.append(next_message_id());
+    cmd_str.append(next_message_id().toUtf8());
     cmd_str.append(",\"method\":\"toggle\",\"params\":[]}\r\n");
     s.write(cmd_str.data());
   }
@@ -426,9 +426,9 @@ void bulb_model::set_brightness(int value)
     QByteArray cmd_str;
     cmd_str.clear();
     cmd_str.append("{\"id\":");
-    cmd_str.append(next_message_id());
+    cmd_str.append(next_message_id().toUtf8());
     cmd_str.append(",\"method\":\"set_bright\",\"params\":[");
-    cmd_str.append(QString("%1").arg(value));
+    cmd_str.append(QString("%1").arg(value).toUtf8());
     cmd_str.append(", \"smooth\", 500]}\r\n");
     s.write(cmd_str.data());
   }
@@ -441,9 +441,9 @@ void bulb_model::set_color_temperature(int value)
     QByteArray cmd_str;
     cmd_str.clear();
     cmd_str.append("{\"id\":");
-    cmd_str.append(next_message_id());
+    cmd_str.append(next_message_id().toUtf8());
     cmd_str.append(",\"method\":\"set_ct_abx\",\"params\":[");
-    cmd_str.append(QString("%1").arg(value));
+    cmd_str.append(QString("%1").arg(value).toUtf8());
     cmd_str.append(", \"smooth\", 500]}\r\n");
     s.write(cmd_str.data());
   }

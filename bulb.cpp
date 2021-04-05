@@ -9,7 +9,7 @@ bulb::bulb(QString ip, QString id, QString name, int brightness)
   bool r = false;
   id_ = id.toULongLong(&r, 16);
   if (!r) {
-    throw new std::exception("");
+    throw new std::exception();
   }
 }
 
